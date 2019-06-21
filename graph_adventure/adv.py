@@ -21,24 +21,12 @@ player = Player("Name", world.startingRoom)
 
 
 # FILL THIS IN
-traversalPath = ['n', 's']
+traversalPath = []
 graph = {
             0: {'n': '?', 's': '?', 'w': '?', 'e': '?'}
         }
+opposite = {'n': 's', 's': 'n', 'e':'w', 'w':'e'}
 
-# TRAVERSAL TEST
-visited_rooms = set()
-player.currentRoom = world.startingRoom
-visited_rooms.add(player.currentRoom)
-for move in traversalPath:
-    player.travel(move)
-    visited_rooms.add(player.currentRoom)
-
-if len(visited_rooms) == len(roomGraph):
-    print(f"TESTS PASSED: {len(traversalPath)} moves, {len(visited_rooms)} rooms visited")
-else:
-    print("TESTS FAILED: INCOMPLETE TRAVERSAL")
-    print(f"{len(roomGraph) - len(visited_rooms)} unvisited rooms")
 
 class Queue:
     def __init__(self):
@@ -56,23 +44,22 @@ class Queue:
         else: 
             return None
 
-    #define BFS
+#define BFS
 def bfs():
-    q = Queue
+    q = Queue()
     visited = set()  #setting a dictionary 
-    q.enqueue([player.currentRoom])
+    q.enqueue([player.currentRoom.id])
     while  q.size() > 0:
         path = q.dequeue()
-        print(path)
         v = path[-1]
         if v not in visited:
             visited.add(v)
-            for neightbor in graph[v]:
-                if graph[v][neightbor] == '?':
+            for neighbor in graph[v]:
+                if graph[v][neighbor] == '?':
                     return path
                 else:
                     path_copy = list(path)
-                    path_copy.append(graph[v][neightbor])
+                    path_copy.append(graph[v][neighbor])
                     q.enqueue(path_copy)
     return visited
 
@@ -88,7 +75,51 @@ def room_to_room_directions(rooms):
                 break
     return directions
 
+while len(graph) < 500:
+    currentRoomExits = graph[player.currentRoom.id]
+    unexplored = []
 
+    for direction in currentRoomExits:
+        if currentRoomExits[direction] == "?": #if current room has "?" 
+            unexplored.append(direction)
+
+    if len(unexplored) > 0:
+        direction = ""
+        if player.currentRoom.getRoomInDirection(unexplored[-1]):
+            direction = unexplored.pop()
+        previousRoomId = player.currentRoom.id
+        player.travel(direction)
+        traversalPath.append(direction)
+        if player.currentRoom.id not in graph:
+            exitDict = {}
+            for exit in player.currentRoom.getExits():
+                exitDict[exit] = "?"
+            graph[previousRoomId][direction] = player.currentRoom.id
+            exitDict[opposite[direction]] = previousRoomId
+            graph[player.currentRoom.id] = exitDict
+        else:
+            graph[previousRoomId][direction] = player.currentRoom.id
+    else:
+        #create a BFS that finds the shortest path to the next "?"
+        rooms = bfs()
+        nearest_unexplored = room_to_room_directions(rooms)
+        for direction in nearest_unexplored:
+            player.travel(direction)
+            traversalPath.append(direction)
+
+# TRAVERSAL TEST
+visited_rooms = set()
+player.currentRoom = world.startingRoom
+visited_rooms.add(player.currentRoom)
+for move in traversalPath:
+    player.travel(move)
+    visited_rooms.add(player.currentRoom)
+
+if len(visited_rooms) == len(roomGraph):
+    print(f"TESTS PASSED: {len(traversalPath)} moves, {len(visited_rooms)} rooms visited")
+else:
+    print("TESTS FAILED: INCOMPLETE TRAVERSAL")
+    print(f"{len(roomGraph) - len(visited_rooms)} unvisited rooms")
 
 #######
 # UNCOMMENT TO WALK AROUND
